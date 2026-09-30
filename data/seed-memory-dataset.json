@@ -1,0 +1,83 @@
+[
+  {
+    "id": "mem-001",
+    "input": {
+      "messages": [{ "role": "user", "content": "I have an iPhone 17 now. How do I turn on dark mode?" }]
+    },
+    "expectedOutput": {
+      "expectedUpdates": [{ "field": "phoneModel", "value": "iPhone 17" }]
+    },
+    "metadata": { "category": "new-phone", "difficulty": "easy" }
+  },
+  {
+    "id": "mem-002",
+    "input": {
+      "messages": [{ "role": "user", "content": "My wife has an iPhone 16. How do I send her a photo on WhatsApp?" }]
+    },
+    "expectedOutput": { "expectedUpdates": [] },
+    "metadata": { "category": "someone-else", "difficulty": "medium" }
+  },
+  {
+    "id": "mem-003",
+    "input": {
+      "messages": [{ "role": "user", "content": "I started using Instagram last week. Where do I find my photos on the phone?" }]
+    },
+    "expectedOutput": {
+      "expectedUpdates": [{ "field": "addApp", "value": "Instagram" }]
+    },
+    "metadata": { "category": "new-app", "difficulty": "easy" }
+  },
+  {
+    "id": "mem-004",
+    "input": {
+      "messages": [{ "role": "user", "content": "I updated to iOS 26 yesterday. Is Bluetooth still in the same place?" }]
+    },
+    "expectedOutput": {
+      "expectedUpdates": [{ "field": "iosVersion", "value": "iOS 26" }]
+    },
+    "metadata": { "category": "os-update", "difficulty": "easy" }
+  },
+  {
+    "id": "mem-005",
+    "input": {
+      "messages": [{ "role": "user", "content": "Maybe I should buy an iPhone 17 soon. How do I check my battery health?" }]
+    },
+    "expectedOutput": { "expectedUpdates": [] },
+    "metadata": { "category": "hypothetical", "difficulty": "medium" }
+  },
+  {
+    "id": "mem-006",
+    "input": {
+      "messages": [{ "role": "user", "content": "I don't use Safari anymore, I switched to Chrome. How do I open a website?" }]
+    },
+    "expectedOutput": {
+      "expectedUpdates": [
+        { "field": "removeApp", "value": "Safari" },
+        { "field": "addApp", "value": "Chrome" }
+      ]
+    },
+    "metadata": { "category": "app-switch", "difficulty": "medium" }
+  },
+  {
+    "id": "mem-007",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "How do I turn Bluetooth on?" },
+        { "role": "assistant", "content": "Open Settings, tap Bluetooth, and turn the switch on so it shows green." },
+        { "role": "user", "content": "Thanks! By the way, I got a new phone, it's an iPhone 16 Pro." }
+      ]
+    },
+    "expectedOutput": {
+      "expectedUpdates": [{ "field": "phoneModel", "value": "iPhone 16 Pro" }]
+    },
+    "metadata": { "category": "new-phone", "difficulty": "medium" }
+  },
+  {
+    "id": "mem-008",
+    "input": {
+      "messages": [{ "role": "user", "content": "What is the newest iPhone you know about?" }]
+    },
+    "expectedOutput": { "expectedUpdates": [] },
+    "metadata": { "category": "question-only", "difficulty": "easy" }
+  }
+]

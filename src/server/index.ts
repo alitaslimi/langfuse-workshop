@@ -6,13 +6,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import type { ChatRequest } from "../shared/types";
+import { getDataResponse, isDataRange } from "./analytics";
+import { getInsightsResponse } from "./insights";
+import { getQualityResponse } from "./quality";
 import { runSupportConversation } from "./support-agent";
 import { env, isLangfuseConfigured } from "./env";
-import { DEFAULT_SUPPORT_CONTEXT } from "./support-data";
+import { enableSupportMemory, getSupportContext, getSupportProfile, resetSupportProfile } from "./support-profile";
 
 const langfuseSpanProcessor = new LangfuseSpanProcessor();
 const sdk = new NodeSDK({ spanProcessors: [langfuseSpanProcessor] });
 sdk.start();
+
+// The web app remembers what Dad tells it (see support-profile.ts).
+enableSupportMemory();
 
 const requestSchema = z.object({
   sessionId: z.string().min(1),
@@ -41,7 +47,58 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.get("/api/support-context", (_request, response) => {
-  response.json(DEFAULT_SUPPORT_CONTEXT);
+  response.json(getSupportContext());
+});
+
+app.get("/api/support-profile", (_request, response) => {
+  response.json(getSupportProfile());
+});
+
+app.post("/api/support-profile/reset", (_request, response) => {
+  resetSupportProfile();
+  response.json(getSupportProfile());
+});
+
+app.get("/api/data", async (request, response) => {
+  if (!isLangfuseConfigured()) {
+    response.status(503).send("Langfuse keys are not configured in .env, so there is no data to read.");
+    return;
+  }
+  const range = isDataRange(request.query.range) ? request.query.range : "7d";
+  try {
+    response.json(await getDataResponse(range, request.query.refresh === "1"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    response.status(502).send(`Could not read data from Langfuse: ${message}`);
+  }
+});
+
+app.get("/api/quality", async (request, response) => {
+  if (!isLangfuseConfigured()) {
+    response.status(503).send("Langfuse keys are not configured in .env.");
+    return;
+  }
+  const range = isDataRange(request.query.range) ? request.query.range : "7d";
+  try {
+    response.json(await getQualityResponse(range, request.query.refresh === "1"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    response.status(502).send(`Could not read the quality loop from Langfuse: ${message}`);
+  }
+});
+
+app.get("/api/insights", async (request, response) => {
+  if (!isLangfuseConfigured() || !env.openaiApiKey) {
+    response.status(503).send("Request insights need both Langfuse keys and an OpenAI key in .env.");
+    return;
+  }
+  const range = isDataRange(request.query.range) ? request.query.range : "7d";
+  try {
+    response.json(await getInsightsResponse(range, request.query.refresh === "1"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    response.status(502).send(`Could not build request insights: ${message}`);
+  }
 });
 
 app.post("/api/chat", async (request, response) => {

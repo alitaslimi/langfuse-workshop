@@ -4,13 +4,16 @@ export const env = {
   port: Number(process.env.PORT ?? 8787),
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-5.5-2026-04-23",
+  // Model that labels requests for the Data page insights; defaults to the chat model.
+  insightsModel: process.env.INSIGHTS_MODEL || process.env.OPENAI_MODEL || "gpt-5.5-2026-04-23",
   langfusePublicKey: process.env.LANGFUSE_PUBLIC_KEY ?? "",
   langfuseSecretKey: process.env.LANGFUSE_SECRET_KEY ?? "",
   langfuseBaseUrl: process.env.LANGFUSE_BASE_URL ?? "https://cloud.langfuse.com",
   langfusePromptName: process.env.LANGFUSE_PROMPT_NAME ?? "dad-it-support-agent",
   langfusePromptLabel: process.env.LANGFUSE_PROMPT_LABEL ?? "production",
   workshopPromptVariant: process.env.WORKSHOP_PROMPT_VARIANT ?? "default",
-  datasetName: process.env.DATASET_NAME ?? "dad-it-support-workshop"
+  datasetName: process.env.DATASET_NAME ?? "dad-it-support-workshop",
+  memoryDatasetName: process.env.MEMORY_DATASET_NAME || "dad-it-support-memory"
 };
 
 export function isLangfuseConfigured() {

@@ -4,8 +4,8 @@ import { observe, propagateAttributes } from "@langfuse/tracing";
 import { LangfuseClient } from "@langfuse/client";
 import type { ChatMessage, ChatRequest, ChatResponse } from "../shared/types";
 import { env } from "./env";
-import { getSupportContext } from "./support-data";
-import { TOOL_DEFINITIONS, executeTool } from "./tools";
+import { getSupportContext } from "./support-profile";
+import { executeTool, getToolDefinitions, type ToolRunContext } from "./tools";
 
 // Local fallback used when Langfuse isn't reachable or the prompt
 // isn't published yet. scripts/publish-prompt.ts pushes this same
@@ -18,11 +18,15 @@ You do not yet know which iPhone Dad has or which apps he uses — call get_supp
 Rules:
 - Speak directly to Dad in second person ("you", "your iPhone"). Never refer to Dad in the third person.
 - Call get_support_context as your very first tool call on each turn so you know which iPhone, iOS, and apps Dad has.
+- If Dad tells you something about his own phone that differs from get_support_context (for example a new iPhone model), believe Dad for this conversation and never tell him he has the older device.
 - For step-by-step help, call search_help_library before giving the final answer.
+- When a help guide matches, keep every step and every option it lists (for example "walking or transit"); add detail, never drop parts of it.
 - Use short numbered steps with one action per line.
+- Start from where Dad is: make step 1 the app to open from the Home Screen and what its icon looks like (for example "Open Settings, the grey gear icon"), so he never has to ask where something is.
 - Mention what Dad should expect to see on his screen after important taps.
 - Be honest about limits. You cannot see his screen, passwords, or real-time location.
-- If the request is out of scope, say so kindly and redirect to the closest iPhone-help you can give.
+- Never reveal, look up, or explain how to view passwords or passcodes, including saved Wi-Fi passwords. Offer to reconnect or reset instead.
+- Only help with Dad's own phone: its settings, apps, and accessories. If he asks for something else (booking travel, moving money, shopping, general knowledge), do not give instructions for it, including steps inside another app (no "sign in and tap Transfer"). Say kindly that it is outside what you can help with, then offer a general phone task at most, such as finding and opening an app from the Home Screen.
 - Do not invent button names or settings paths that were not confirmed by tool results.
 `;
 
@@ -85,13 +89,18 @@ async function runSupportConversationInner(request: ChatRequest): Promise<ChatRe
         ...toOpenAIMessages(request.messages)
       ];
       const usedTools = new Set<string>();
+      const toolRun: ToolRunContext = {
+        sessionId: request.sessionId,
+        userMessages: request.messages.filter((message) => message.role === "user").map((message) => message.content),
+        profileUpdates: []
+      };
       let finalAnswer = "";
 
       for (let attempt = 0; attempt < 6; attempt += 1) {
         const response = await openai.chat.completions.create({
           model: env.openaiModel,
           messages: transcript,
-          tools: TOOL_DEFINITIONS,
+          tools: getToolDefinitions(),
           tool_choice: "auto"
         });
 
@@ -114,7 +123,7 @@ async function runSupportConversationInner(request: ChatRequest): Promise<ChatRe
           const result =
             parsedArguments === null
               ? { ok: false, error: `The tool arguments for ${toolCall.function.name} were not valid JSON.` }
-              : await executeTool(toolCall.function.name, parsedArguments);
+              : await executeTool(toolCall.function.name, parsedArguments, toolRun);
           transcript.push({
             role: "tool",
             tool_call_id: toolCall.id,
@@ -131,6 +140,7 @@ async function runSupportConversationInner(request: ChatRequest): Promise<ChatRe
       return {
         answer: finalAnswer,
         usedTools: [...usedTools],
+        profileUpdates: toolRun.profileUpdates,
         traceMeta: {
           contextId: context.id,
           contextLabel: context.label,

@@ -152,5 +152,85 @@
       "expectedKeywords": ["outside", "scope", "phone help"]
     },
     "metadata": { "category": "out-of-scope", "difficulty": "easy" }
+  },
+  {
+    "id": "dad-015",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "How do I turn on dark mode?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Open Settings, tap Display & Brightness, then tap Dark under Appearance.",
+      "expectedKeywords": ["Settings", "Display & Brightness", "Dark"]
+    },
+    "metadata": { "category": "iphone-settings", "difficulty": "easy", "source": "production-traffic" }
+  },
+  {
+    "id": "dad-016",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "How do I turn on Low Power Mode?" },
+        { "role": "assistant", "content": "Open Settings, tap Battery, then turn on Low Power Mode." },
+        { "role": "user", "content": "Sorry, where is that on the home screen?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Explain that Settings is the grey gear icon on the Home Screen, then open it, tap Battery, and turn on Low Power Mode.",
+      "expectedKeywords": ["Settings", "gear", "Battery", "Low Power Mode"]
+    },
+    "metadata": { "category": "follow-up", "difficulty": "medium", "source": "production-traffic" }
+  },
+  {
+    "id": "dad-017",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "How do I set a screen time limit for myself?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Open Settings, tap Screen Time (turn it on if needed), tap App Limits, then Add Limit, choose the apps and set the time.",
+      "expectedKeywords": ["Settings", "Screen Time", "App Limits", "Add Limit"]
+    },
+    "metadata": { "category": "iphone-settings", "difficulty": "medium", "source": "production-traffic" }
+  },
+  {
+    "id": "dad-018",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "How do I back up my iPhone to iCloud?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Connect to Wi-Fi, open Settings, tap your name, then iCloud and iCloud Backup, turn on Back Up This iPhone, and tap Back Up Now.",
+      "expectedKeywords": ["Wi-Fi", "Settings", "iCloud Backup", "Back Up Now"]
+    },
+    "metadata": { "category": "iphone-icloud", "difficulty": "medium", "source": "production-traffic" }
+  },
+  {
+    "id": "dad-019",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "Can you transfer money from my bank account to my son?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Say that moving money is outside what the assistant can help with, give no banking steps, and offer phone help instead, such as opening the bank's app.",
+      "expectedKeywords": ["outside", "bank"]
+    },
+    "metadata": { "category": "out-of-scope", "difficulty": "medium", "source": "production-traffic" }
+  },
+  {
+    "id": "dad-020",
+    "input": {
+      "messages": [
+        { "role": "user", "content": "I have an iPhone 17 now. How do I turn on dark mode?" }
+      ]
+    },
+    "expectedOutput": {
+      "idealAnswer": "Acknowledge the new iPhone 17, then explain: open Settings, tap Display & Brightness, and tap Dark under Appearance.",
+      "expectedKeywords": ["iPhone 17", "Settings", "Display & Brightness", "Dark"]
+    },
+    "metadata": { "category": "context-change", "difficulty": "medium", "source": "production-traffic" }
   }
 ]

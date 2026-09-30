@@ -1,7 +1,14 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { ChatMessage, ChatRequest, ChatResponse, SupportContext } from "../shared/types";
+import type {
+  ChatMessage,
+  ChatRequest,
+  ChatResponse,
+  ProfileField,
+  ProfileUpdate,
+  SupportProfileResponse
+} from "../shared/types";
 
 const SESSION_STORAGE_KEY = "dad-it-support-session";
 
@@ -12,13 +19,14 @@ const SUGGESTIONS = [
   "How do I free up storage on my phone?"
 ];
 
-const PHONE = {
-  ownerName: "Dad",
-  ownerSub: "Signed in · iPhone 15",
-  model: "iPhone 15",
-  finish: "Black, 128 GB",
-  os: "iOS 18.5",
-  purchased: "Sep 2023"
+const FIELD_LABELS: Record<ProfileField, string> = {
+  phoneModel: "Phone",
+  iosVersion: "iOS version",
+  phoneFinish: "Color & storage",
+  phonePurchased: "Bought",
+  addApp: "App added",
+  removeApp: "App removed",
+  note: "Note"
 };
 
 function createSessionId() {
@@ -101,19 +109,82 @@ function AgentAvatar() {
   );
 }
 
-function PhonePanel() {
+function timeAgo(iso: string) {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function describeUpdate(update: ProfileUpdate) {
+  if (update.field === "addApp" || update.field === "removeApp" || update.field === "note") {
+    return update.value ?? "";
+  }
+  if (update.value === null) return `${update.previousValue ?? "—"} → not known`;
+  return update.previousValue ? `${update.previousValue} → ${update.value}` : update.value;
+}
+
+// Latest chat-sourced change per phone field, used for the "updated" markers.
+function lastChange(updates: ProfileUpdate[], field: ProfileField) {
+  for (let index = updates.length - 1; index >= 0; index -= 1) {
+    if (updates[index].field === field) return updates[index];
+  }
+  return undefined;
+}
+
+function Updated({ update }: { update?: ProfileUpdate }) {
+  if (!update) return null;
+  const title =
+    update.source === "cleared"
+      ? update.evidence
+      : `Learned in chat ${timeAgo(update.at)}: “${update.evidence}”`;
+  return (
+    <span className="updated-tag" title={title}>
+      {update.source === "cleared" ? "cleared" : "updated"}
+    </span>
+  );
+}
+
+function Unknown() {
+  return <span className="unknown">not known yet</span>;
+}
+
+function PhonePanel({ profile, onReset }: { profile: SupportProfileResponse | null; onReset: () => void }) {
+  if (!profile) {
+    return (
+      <aside className="side">
+        <p className="side-eyebrow">// You</p>
+        <div className="lf-corners who-card">Loading profile…</div>
+      </aside>
+    );
+  }
+
+  const { context, updates } = profile;
+  const phone = context.phone;
+  const learned = [...updates].reverse();
+  const addedApps = new Set(updates.filter((update) => update.field === "addApp").map((update) => update.value?.toLowerCase()));
+
   return (
     <aside className="side">
       <p className="side-eyebrow">// You</p>
 
       <div className="lf-corners who-card">
         <div className="row">
-          <div className="portrait">D</div>
+          <div className="portrait">{context.label.charAt(0)}</div>
           <div>
-            <h3>{PHONE.ownerName}</h3>
-            <div className="who-sub">{PHONE.ownerSub}</div>
+            <h3>{context.label}</h3>
+            <div className="who-sub">Signed in · {phone.model ?? "phone unknown"}</div>
           </div>
         </div>
+        {context.notes.length > 0 && (
+          <ul className="who-notes">
+            {context.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <p className="side-eyebrow">// Your phone</p>
@@ -124,19 +195,79 @@ function PhonePanel() {
             <div className="screen"></div>
           </div>
           <div className="phone-meta">
-            <div className="model">{PHONE.model}</div>
-            <div className="os">{PHONE.os}</div>
-            <div className="age">
-              {PHONE.finish} · bought {PHONE.purchased}
+            <div className="model">
+              {phone.model ?? <Unknown />} <Updated update={lastChange(updates, "phoneModel")} />
+            </div>
+            <div className="os">
+              {phone.os ?? <Unknown />} <Updated update={lastChange(updates, "iosVersion")} />
             </div>
           </div>
         </div>
+        <div className="spec-list">
+          <div className="spec">
+            <span className="k">Color & storage</span>
+            <span className="v">
+              <Updated update={lastChange(updates, "phoneFinish")} /> {phone.finish ?? <Unknown />}
+            </span>
+          </div>
+          <div className="spec">
+            <span className="k">Bought</span>
+            <span className="v">
+              <Updated update={lastChange(updates, "phonePurchased")} /> {phone.purchased ?? <Unknown />}
+            </span>
+          </div>
+          <div className="spec apps-row">
+            <span className="k">Apps</span>
+            <span className="v apps">
+              {context.notableApps.map((app) => (
+                <span key={app} className={addedApps.has(app.toLowerCase()) ? "app-chip new" : "app-chip"}>
+                  {app}
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p className="side-eyebrow">// What Specs learned</p>
+
+      <div className="lf-corners learned-card">
+        {!profile.memoryEnabled ? (
+          <p className="learned-empty">Memory is turned off in this environment.</p>
+        ) : learned.length === 0 ? (
+          <p className="learned-empty">
+            Nothing yet. When you tell Specs something new about your phone, like “I have an iPhone 17 now”, it shows up here and in
+            every future chat.
+          </p>
+        ) : (
+          <>
+            <ul className="learned-list">
+              {learned.slice(0, 8).map((update) => (
+                <li key={update.id} className={update.source}>
+                  <div className="learned-head">
+                    <span className="learned-field">{FIELD_LABELS[update.field]}</span>
+                    <span className="learned-time">{timeAgo(update.at)}</span>
+                  </div>
+                  <div className="learned-value">{describeUpdate(update)}</div>
+                  {update.source === "chat" ? (
+                    <div className="learned-evidence">“{update.evidence}”</div>
+                  ) : (
+                    <div className="learned-evidence plain">Old phone detail, cleared automatically</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <button className="learned-reset" type="button" onClick={onReset}>
+              Reset to base profile
+            </button>
+          </>
+        )}
       </div>
     </aside>
   );
 }
 
-function TopBar() {
+export function TopBar({ active = "chat" }: { active?: "chat" | "data" }) {
   return (
     <header className="topbar">
       <img className="wordart" src="/assets/langfuse-wordart.svg" alt="Langfuse" />
@@ -147,6 +278,10 @@ function TopBar() {
           <span className="mark">Dad</span> IT Support Agent
         </span>
       </div>
+      <nav className="topnav" aria-label="Pages">
+        <a href="/" aria-current={active === "chat" ? "page" : undefined}>Chat</a>
+        <a href="/data" aria-current={active === "data" ? "page" : undefined}>Data</a>
+      </nav>
       <span className="spacer"></span>
       <span className="status">
         <span className="dot"></span> live · gpt-5.5-2026-04-23
@@ -156,7 +291,8 @@ function TopBar() {
 }
 
 export function App() {
-  const [supportContext, setSupportContext] = useState<SupportContext | null>(null);
+  const [profile, setProfile] = useState<SupportProfileResponse | null>(null);
+  const supportContext = profile?.context ?? null;
   const [messages, setMessages] = useState<ChatMessage[]>([createGreeting()]);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -168,17 +304,27 @@ export function App() {
     setSessionId(createSessionId());
   }, []);
 
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/support-profile");
+      if (!response.ok) return;
+      setProfile((await response.json()) as SupportProfileResponse);
+    } catch {
+      /* panel shows a loading state */
+    }
+  }
+
+  async function resetProfile() {
+    const confirmed = window.confirm(
+      "Forget everything Specs learned in chat and go back to the base profile (iPhone 15)? This clears the saved updates."
+    );
+    if (!confirmed) return;
+    const response = await fetch("/api/support-profile/reset", { method: "POST" });
+    if (response.ok) setProfile((await response.json()) as SupportProfileResponse);
+  }
+
   useEffect(() => {
-    void (async () => {
-      try {
-        const response = await fetch("/api/support-context");
-        if (!response.ok) return;
-        const context = (await response.json()) as SupportContext;
-        setSupportContext(context);
-      } catch {
-        /* panel falls back to hardcoded copy */
-      }
-    })();
+    void loadProfile();
   }, []);
 
   useEffect(() => {
@@ -219,6 +365,7 @@ export function App() {
 
       const result = (await response.json()) as ChatResponse;
       setMessages((current) => [...current, createMessage("assistant", result.answer)]);
+      if (result.profileUpdates?.length) void loadProfile();
     } catch (error) {
       const fallback = error instanceof Error ? error.message : "The chat request failed.";
       setMessages((current) => [
@@ -336,7 +483,7 @@ export function App() {
           </form>
         </section>
 
-        <PhonePanel />
+        <PhonePanel profile={profile} onReset={() => void resetProfile()} />
       </div>
     </div>
   );

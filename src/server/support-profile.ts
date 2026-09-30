@@ -158,7 +158,7 @@ function words(text: string) {
     .filter((word) => word.length > 1);
 }
 
-export function isGroundedInMessages(evidence: string, userMessages: string[]) {
+function isGroundedInMessages(evidence: string, userMessages: string[]) {
   const evidenceWords = words(evidence);
   if (evidenceWords.length === 0) return false;
   return userMessages.some((message) => {
@@ -172,7 +172,7 @@ export function isGroundedInMessages(evidence: string, userMessages: string[]) {
 
 export type ProfileChange = { field: ProfileField; value: string };
 
-export type ApplyResult =
+type ApplyResult =
   | { ok: true; applied: ProfileUpdate[]; skipped: { field: ProfileField; reason: string }[]; context: SupportContext }
   | { ok: false; error: string };
 

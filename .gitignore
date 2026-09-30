@@ -7,3 +7,5 @@ dist
 .vite
 coverage
 .data
+# Local preview config for the Claude desktop app
+.claude/launch.json

@@ -218,38 +218,6 @@ function ColumnChart({ columns, height = 200, ariaLabel }: { columns: Column[]; 
   );
 }
 
-type BarRow = { key: string; label: string; note?: string; value: number; display: string; tooltip: string[] };
-
-function BarList({ rows }: { rows: BarRow[] }) {
-  const [tip, setTip] = useState<Tip>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  const max = Math.max(0, ...rows.map((row) => row.value)) || 1;
-  return (
-    <div className="dp-barlist" ref={ref} onMouseLeave={() => setTip(null)}>
-      {rows.map((row) => (
-        <div
-          key={row.key}
-          className="dp-barrow"
-          onMouseMove={(event) => {
-            const box = ref.current!.getBoundingClientRect();
-            setTip({ x: event.clientX - box.left, y: event.clientY - box.top, flip: event.clientX - box.left > box.width / 2, lines: row.tooltip });
-          }}
-        >
-          <span className="dp-barrow-label">
-            {row.label}
-            {row.note && <small>{row.note}</small>}
-          </span>
-          <span className="dp-barrow-track">
-            <span className="dp-barrow-fill" style={{ width: `${(row.value / max) * 100}%` }} />
-            <span className="dp-barrow-value">{row.display}</span>
-          </span>
-        </div>
-      ))}
-      <Tooltip tip={tip} />
-    </div>
-  );
-}
-
 function TokenBars({ models }: { models: DataResponse["models"] }) {
   const [tip, setTip] = useState<Tip>(null);
   const ref = useRef<HTMLDivElement>(null);

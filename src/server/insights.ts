@@ -34,7 +34,7 @@ const BATCH_SIZE = 20;
 const BATCH_CONCURRENCY = 3;
 const CACHE_TTL_MS = 30_000;
 
-export const CATEGORY_LABELS: Record<RequestCategory, string> = {
+const CATEGORY_LABELS: Record<RequestCategory, string> = {
   diagnosis: "Diagnosis & troubleshooting",
   os_settings: "iOS & settings",
   apps: "Apps",
